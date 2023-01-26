@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SKCC Web Skimmer</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-GLhlTQ8iRABdZLl6O3oVMWSktQOp6b7In1Zl3/Jr59b6EGGoI1aFkw7cmDA6j6gD" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-w76AqPfDkMBDXo30jS1Sgez6pr3x5MlQ1ZAGC+nuZB+EYdgRZgiwxhTBTkF7CXvN"
+        crossorigin="anonymous"></script>
+    <script
+        src="https://code.jquery.com/jquery-3.6.3.min.js"
+        integrity="sha256-pvPw+upLPUjgMXY0G+8O0xUf+/Im1MZjXxxgOcBQBXU="
+        crossorigin="anonymous"></script>     
+    <link href="{{ url_for('static', filename='/font-awesome-4.7.0/css/font-awesome.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='main.css') }}" rel="stylesheet">
+    <script>
+        function onClearClick() {
+                var xhr = new XMLHttpRequest();
+                xhr.open("get", '{{ url_for('clear_spots') }}', true);
+                xhr.send();
+                xhr.onload = function () {
+                    console.log("cleared");
+                }
+            }
+    </script>
+</head>
+
+<body class="bg-white">
+    <nav class="navbar sticky-top navbar-light bg-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">SKCC Skimmer - Webapp</a>
+            <div id="time" class="navbar-text utc">UTC:</div>
+    </nav>
+    <main class="flex-shrink-0">
+        <div class="container">
+        
+            <div class="container bg-light py-1">
+                <h2 class="text-center">Status Info
+                    <button class="btn btn-secondary m-3 me-auto" data-bs-toggle="collapse" href="#statusCollapse"
+                        aria-expanded="true" aria-controls="statusCollapse">
+                        <i class="fa fa-eye" aria-hidden="true"></i>
+                    </button>
+                </h2>
+                <div class="collapse show" id="statusCollapse">
+                    <div id="status" class="container-lg border py-3">Testing</div>
+                </div>
+            </div>
+            
+            <div class="container bg-light py-1">
+                <h2 class="text-center">SKEDS
+                    <button class="btn btn-secondary m-3" data-bs-toggle="collapse" href="#skedCollapse" aria-expanded="true"
+                        aria-controls="skedCollapse">
+                        <i class="fa fa-eye" aria-hidden="true"></i>
+                    </button>
+                </h2>
+                <div class="collapse show" id="skedCollapse">
+                    <div id="skeds" class="container-lg border py-3"></div>
+                </div>
+            </div>
+            
+            <div class="container bg-light pb-5">
+                <h2 class="text-center">Cluster Spots
+                    <button class="btn btn-primary m-3" onclick="onClearClick()">Clear Spots</button>
+                </h2>
+                <div id="spots" class="overflow-auto container-lg border py-3" style="max-height: 500px;"></div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer mt-auto py-5" style="background-color: rgba(0,0,0,0.2);">
+        <div class="container-fluid"></div>
+        <p class="text-center">©2023 Copyright: <a class="text-dark" href="http://krinkl3.net">krinkl3.net</a></p>
+        </div>
+    </footer>
+
+    <script>
+        (function () {
+            
+            var status_set = false;
+
+            /* 
+            *  Write out the HTML for a the spot array (arr) to the 
+            *  element at (id).
+            */
+            function writeSpotLine(arr, id) {
+                var out = '';
+                var i;
+                for (i = 0; i < arr.length; i++) {
+
+                    var spot_class = "spotline";
+                    if (arr[i].flag) {
+                        console.log('newhighlight line');
+                        spot_class += " newhighlight";
+                    }
+
+                    out += '<div class="' + spot_class + '">';
+                    out += '<span class="zulu">' + arr[i].time + '</span>' +
+                        '<span class="callsign"> ' + arr[i].call + ' </span>' +
+                        '<span class="freq">' + arr[i].freq + '</span>' +
+                        '<span class="spotter"> ' + arr[i].spotter + ' </span>' +
+                        '<span class="skcc_info"> (' + arr[i].num + ' ' + arr[i].name + ' ' + arr[i].spc + ') </span>' +
+                        '';
+                    out += '<span class="youneed fw-lighter"> ' + arr[i].you_need + '</span>'
+                    out += '<span class="theyneed fw-lighter"> ' + arr[i].they_need + '</span>'
+                    out += '<span class="sked_status"> ' + arr[i].sked_stat + '</span>'
+                    out += "<br>"
+                    out += '</div>'
+                }
+                document.getElementById(id).innerHTML = out;
+
+                if (id == "spots") {
+                    var spotDiv = document.getElementById(id);
+                    var scrollHeight = Math.max(spotDiv.scrollHeight, spotDiv.clientHeight);
+                    spotDiv.scrollTop = scrollHeight - spotDiv.clientHeight;
+                }
+            }
+
+            function get_spots() {
+                // create an ajax request
+                var q = new XMLHttpRequest();
+                var spot_timeout = {{ config['SPOT_TIME']|tojson }};
+                q.open("get", '{{ url_for('get_spots') }}', true);
+                q.send();
+
+                q.onload = function () {
+                    // update page with new value
+                    if (q.responseText != "No new spots")
+                    {
+                        var v = JSON.parse(q.responseText);
+                        writeSpotLine(v, "spots");
+                    }
+
+                    setTimeout(get_spots, spot_timeout);
+                };
+            }
+
+            function get_skeds_vals() {
+                // create an ajax request
+                var q = new XMLHttpRequest();
+                var sked_timeout = {{ config['SKED_TIME']|tojson }};
+
+                q.open("get", '{{ url_for('get_skeds') }}', true);
+                q.send();
+
+                q.onload = function () {
+                    // update page with new value
+                    if (q.responseText != "No new spots")
+                    {
+                        var v = JSON.parse(q.responseText)
+                        writeSpotLine(v, "skeds");
+                    }
+
+                    setTimeout(get_skeds_vals, sked_timeout);
+                };
+            }
+
+            function get_status() {
+                // create an ajax request
+                var q = new XMLHttpRequest();
+
+                q.open("get", '{{ url_for('get_status') }}', true);
+                q.send();
+
+                q.onload = function () {
+                    // update page with new value
+                    var i = 0;
+                    var out = '';
+                    var v = JSON.parse(q.responseText);
+
+                    console.log(v[0]);
+
+                    // check v and makesure skimmer isn't in 'starting' state
+                    // and set status_set = true
+                    //document.getElementById('status').innerHTML = q.responseText;
+                    out += '<pre>';
+                    for (i = 1; i < v.length; i++) {
+                        out += '<div class="statusline">';
+                        out += v[i];
+                        out += '</div>';
+                    }
+                    out += '</pre>';
+
+                    document.getElementById('status').innerHTML = out;
+
+                    if (v[0] != "running")
+                        setTimeout(get_status, 1000);
+                };
+            };
+
+            function updateClock() {
+                var utc_timestamp = Math.floor((new Date()).getTime() / 1000)
+                var t = new Date().toUTCString();
+                document.getElementById('time').innerHTML = t;
+
+                // call this function again in 1000ms
+                setTimeout(updateClock, 1000);
+            };
+
+            // call the function to get it started
+            updateClock();
+            get_spots();
+            get_skeds_vals();
+            get_status();
+
+
+            /* toggle the Highlight on a spotline on click */
+            $(document).on("click", 'div.spotline', function(event) { 
+                if ($(this).hasClass("highlight"))
+                    $(this).removeClass("highlight")
+                else
+                    $(this).addClass("highlight");
+            });
+
+        })();
+    </script>
+
+</body>
+
+</html>

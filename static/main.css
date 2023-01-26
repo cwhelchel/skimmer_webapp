@@ -1,0 +1,56 @@
+.callsign,
+.freq ,
+.statusline {
+    font-family: monospace;
+}
+
+.callsign {
+    text-align: center;
+    color: blue;
+}
+
+.zulu {
+    color: blueviolet;
+    font-weight: lighter;
+    font-size: smaller;
+}
+
+.youneed {
+    color: green
+}
+
+.theyneed {
+    color: darkorange;
+}
+
+.freq {
+    font-style: italic;
+    color: maroon;
+}
+
+.spotter {
+    font-weight: lighter;
+    font-size: smaller;
+}
+
+.skcc_info {
+    color: blue;
+    font-style: normal;
+}
+
+.sked_status {
+    color: maroon;
+    font-size: small;
+}
+
+.highlight {
+    background-color: yellow;
+}
+
+.newhighlight {
+    background-color: aqua;
+}
+
+.utc {
+    color: blueviolet;
+}
