@@ -1,6 +1,8 @@
 import subprocess
 import re
 import os
+from datetime import datetime, timezone, timedelta
+from flask import Flask
 from dataclasses import dataclass
 
 class SpotType:
@@ -26,10 +28,19 @@ class Spot:
     you_need: str = ""
     they_need: str = ""
     sked_stat: str = ""
+    utc_time : datetime = datetime.utcnow()
 
     def __post_init__(self):
         self.time = self.time[:2] + ':' + self.time[2:].lower()
-        
+        hour = self.time[:2]
+        minute = self.time[3:5]
+        self.utc_time = datetime(self.utc_time.year, \
+            self.utc_time.month, \
+            self.utc_time.day, \
+            int(hour), \
+            int(minute), \
+            0, 0, tzinfo=timezone.utc)
+
 
 class SkccStatus:
     __config = {}
@@ -56,18 +67,21 @@ class cSkimmer:
     This class will spawn a python subprocess (of skcc_skimmer.py) with piped
     stdout which is then read forever. Call run() then read() <= which blocks 
     forever
+
+    :param cfg: dictionary of configured values. Usually the ```app.config``` 
+    object from Flask
     """
 
-    __status = SkccStatus()
-    __spots = []
-    __sked_spots = []
-    __new_spot = False
-    __new_skeds = False
-    __parsing_skeds = True
-    is_running = False
-
-    def __init__(self):
-        self.cmd = ["python", "skcc_skimmer.py"]
+    def __init__(self, cfg : dict):
+        self.__cmd = ["python", "skcc_skimmer.py"]
+        self.__status = SkccStatus()
+        self.__spots = []
+        self.__sked_spots = []
+        self.__new_spot = False
+        self.__new_skeds = False
+        self.__parsing_skeds = True
+        self.__is_running = False
+        self.__config = cfg
 
     def run(self):
         """Create the python subprocess and run the main skimmer application.
@@ -75,14 +89,13 @@ class cSkimmer:
         This should be done first.
         """
 
-        if not self.is_running:
+        if not self.__is_running:
             os.environ['PYTHONIOENCODING'] = 'utf-8'
 
-            self.proc = subprocess.Popen(self.cmd, encoding='utf-8', stdout=subprocess.PIPE)
-            self.is_running = True
+            self.proc = subprocess.Popen(self.__cmd, encoding='utf-8', stdout=subprocess.PIPE)
+            self.__is_running = True
 
 
-    # this will never return
     def read(self):
         """Reads and parses the skimmer subprocess' output. 
         
@@ -102,7 +115,7 @@ class cSkimmer:
         return str
 
 
-    def get_spots(self):
+    def get_spots(self) -> tuple[bool, list]:
         """Returns the a tuple with the lists of spots and a flag indicating there are new spots
         
         Calling this method sets the above flag to False
@@ -112,7 +125,7 @@ class cSkimmer:
         return result
 
 
-    def get_skeds(self):
+    def get_skeds(self) -> tuple[bool, list]:
         """Returns the a tuple with the lists of skeds and a flag indicating there are new skeds
         
         Calling this method sets the above flag to False. Also if this method is
@@ -169,6 +182,8 @@ class cSkimmer:
             else:
                 self.__parse_line(line)
 
+            self.__check_spots()
+
 
     def __parse_cfg_line(self, line : str, prefix : str):
         if line.startswith(prefix):
@@ -191,6 +206,24 @@ class cSkimmer:
             spot.kind = SpotType.SPOT
             self.__new_spot = True
             self.__spots.append(spot)
+
+
+    def __check_spots(self):
+        '''Loop thru the spots list and remove any older than a certain time'''
+        if "SPOT_EXPIRE_TIME" in self.__config:
+            timeout = self.__config["SPOT_EXPIRE_TIME"]
+        else:
+            timeout = 3600
+
+        for spot in self.__spots:
+            t = datetime.now(tz=timezone.utc)
+            # print(f'spot time {spot.utc_time} == current {t}')
+            delta = t - spot.utc_time
+
+            # if its been an hour remove the spot from the list
+            if delta >= timedelta(seconds=timeout):
+                self.__spots.remove(spot)
+
 
 
 class Parser():
@@ -241,8 +274,9 @@ class Parser():
                         kind = SpotType.UNKNOWN,\
                         flag = flag)
             return spot
-        else: 
-            print("error spot header didn't match!")
+        
+        #else: 
+            #print("error spot header didn't match!")
         
         return None
 

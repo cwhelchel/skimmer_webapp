@@ -118,73 +118,47 @@
                 }
             }
 
-            function get_spots() {
-                // create an ajax request
-                var q = new XMLHttpRequest();
-                var spot_timeout = {{ config['SPOT_TIME']|tojson }};
-                q.open("get", '{{ url_for('get_spots') }}', true);
-                q.send();
+            function writeStatus(jsonData) {
+                var i = 0;
+                var out = '<pre>';
 
-                q.onload = function () {
-                    // update page with new value
-                    if (q.responseText != "No new spots")
-                    {
-                        var v = JSON.parse(q.responseText);
-                        writeSpotLine(v, "spots");
-                    }
+                for (i = 1; i < jsonData.length; i++) {
+                    out += '<div class="statusline">';
+                    out += jsonData[i];
+                    out += '</div>';
+                }
+                out += '</pre>';
 
-                    setTimeout(get_spots, spot_timeout);
-                };
+                document.getElementById('status').innerHTML = out;
             }
 
-            function get_skeds_vals() {
-                // create an ajax request
-                var q = new XMLHttpRequest();
-                var sked_timeout = {{ config['SKED_TIME']|tojson }};
+            /* SPOTS WEBSOCKET */
+            const spotsWebsocket = new WebSocket('ws://' + location.host + '/getspotsws');
+            spotsWebsocket.addEventListener('message', ev => {
+                jsonData = JSON.parse(ev.data);
+                writeSpotLine(jsonData, "spots");
+            });
 
-                q.open("get", '{{ url_for('get_skeds') }}', true);
-                q.send();
-
-                q.onload = function () {
-                    // update page with new value
-                    if (q.responseText != "No new spots")
-                    {
-                        var v = JSON.parse(q.responseText)
-                        writeSpotLine(v, "skeds");
-                    }
-
-                    setTimeout(get_skeds_vals, sked_timeout);
-                };
-            }
+            /* SKEDS WEBSOCKET */
+            const skedssWebsocket = new WebSocket('ws://' + location.host + '/getskedsws');
+            skedssWebsocket.addEventListener('message', ev => {
+                jsonData = JSON.parse(ev.data);
+                writeSpotLine(jsonData, "skeds");
+            });
 
             function get_status() {
                 // create an ajax request
                 var q = new XMLHttpRequest();
-
                 q.open("get", '{{ url_for('get_status') }}', true);
                 q.send();
 
                 q.onload = function () {
-                    // update page with new value
-                    var i = 0;
-                    var out = '';
                     var v = JSON.parse(q.responseText);
 
-                    console.log(v[0]);
+                    writeStatus(v);
 
-                    // check v and makesure skimmer isn't in 'starting' state
-                    // and set status_set = true
-                    //document.getElementById('status').innerHTML = q.responseText;
-                    out += '<pre>';
-                    for (i = 1; i < v.length; i++) {
-                        out += '<div class="statusline">';
-                        out += v[i];
-                        out += '</div>';
-                    }
-                    out += '</pre>';
-
-                    document.getElementById('status').innerHTML = out;
-
+                    // v[0] is the current cSkimmer state value. either starting
+                    // or running
                     if (v[0] != "running")
                         setTimeout(get_status, 1000);
                 };
@@ -201,15 +175,13 @@
 
             // call the function to get it started
             updateClock();
-            get_spots();
-            get_skeds_vals();
             get_status();
 
 
             /* toggle the Highlight on a spotline on click */
             $(document).on("click", 'div.spotline', function(event) { 
                 if ($(this).hasClass("highlight"))
-                    $(this).removeClass("highlight")
+                    $(this).removeClass("highlight");
                 else
                     $(this).addClass("highlight");
             });
