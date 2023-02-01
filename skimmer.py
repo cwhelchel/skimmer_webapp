@@ -28,12 +28,13 @@ class Spot:
     you_need: str = ""
     they_need: str = ""
     sked_stat: str = ""
-    utc_time : datetime = datetime.utcnow()
+    utc_time : datetime = datetime.min
 
     def __post_init__(self):
         self.time = self.time[:2] + ':' + self.time[2:].lower()
         hour = self.time[:2]
         minute = self.time[3:5]
+        self.utc_time = datetime.utcnow()
         self.utc_time = datetime(self.utc_time.year, \
             self.utc_time.month, \
             self.utc_time.day, \
@@ -109,7 +110,10 @@ class cSkimmer:
         for line in iter(self.proc.stdout.readline, ''):
             str = line.strip()
             self.__parse(str)
-            print(str)
+
+            if "SHOW_SKIMMER_OUTPUT" in self.__config and \
+                self.__config['SHOW_SKIMMER_OUTPUT']:
+                print(str)
 
         # we never get here
         return str
@@ -222,6 +226,7 @@ class cSkimmer:
 
             # if its been an hour remove the spot from the list
             if delta >= timedelta(seconds=timeout):
+                print("removing old spot")
                 self.__spots.remove(spot)
 
 
