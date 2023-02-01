@@ -1,12 +1,12 @@
 import threading
 from time import sleep
-from flask import Flask, g
-from flask import render_template
-from flask import jsonify
+from flask import Flask, render_template
+from flask import jsonify, request, session
 from flask_sock import Sock
 from skimmer import cSkimmer
 
 app = Flask(__name__)
+app.secret_key = 'BAD_SANTA'
 sock = Sock(app)
 app.config.from_pyfile('skimmerwebapp.cfg')
 skimmer = cSkimmer(app.config)
@@ -51,6 +51,28 @@ def clear_spots():
     """
     skimmer.clear_spots()
     return "nothing"
+
+@app.route('/save/', methods=['POST'])
+def save():
+    """Allows a user to save a thingy"""
+    data = request.get_json()
+    print(data)
+    if not session.get('stored_spots'):
+        session['stored_spots'] = []
+
+    session['stored_spots'].append(data)
+    session.modified = True
+
+    return jsonify(success=True)
+
+@app.route('/load', methods=['GET'])
+def load():
+    """Allows a user to save a thingy"""
+    if not session.get('stored_spots'):
+        return jsonify(success=False, message='no stored spots')
+
+    print('load' + str(session['stored_spots']))
+    return jsonify(session['stored_spots'])
 
 
 @sock.route('/getskedsws')

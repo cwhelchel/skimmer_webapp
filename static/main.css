@@ -1,7 +1,15 @@
 .callsign,
 .freq ,
-.statusline {
+.statusline,
+.zulu {
     font-family: monospace;
+}
+
+.youneed,
+.theyneed,
+.sked_status,
+.zulu {
+    font-size: small;
 }
 
 .callsign {
@@ -12,11 +20,11 @@
 .zulu {
     color: blueviolet;
     font-weight: lighter;
-    font-size: smaller;
 }
 
 .youneed {
-    color: green
+    color: green;
+    font-weight: lighter;
 }
 
 .theyneed {
@@ -30,7 +38,7 @@
 
 .spotter {
     font-weight: lighter;
-    font-size: smaller;
+    font-size: x-small;
 }
 
 .skcc_info {
@@ -40,7 +48,10 @@
 
 .sked_status {
     color: maroon;
-    font-size: small;
+}
+
+.utc {
+    color: blueviolet;
 }
 
 .highlight {
@@ -51,6 +62,4 @@
     background-color: aqua;
 }
 
-.utc {
-    color: blueviolet;
-}
+
