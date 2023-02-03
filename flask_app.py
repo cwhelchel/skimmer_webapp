@@ -1,4 +1,5 @@
 import threading
+from datetime import timedelta
 from time import sleep
 from flask import Flask, render_template
 from flask import jsonify, request, session
@@ -6,7 +7,13 @@ from flask_sock import Sock
 from skimmer import cSkimmer
 
 app = Flask(__name__)
+
+# setup config for sessions
+app.config['SESSION_PERMANENT'] = True
+app.config['SESSION_TYPE'] = 'filesystem'
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=48)
 app.secret_key = 'BAD_SANTA'
+
 sock = Sock(app)
 app.config.from_pyfile('skimmerwebapp.cfg')
 skimmer = cSkimmer(app.config)
@@ -14,6 +21,9 @@ skimmer = cSkimmer(app.config)
 
 @app.before_first_request
 def start_skimmer():
+    # make session permanent
+    session.permanent = True
+
     #kick off main skcc skimmer script
     skimmer.run()
 
@@ -43,6 +53,7 @@ def get_status():
     j = s.get_lines()
     return jsonify(j)
 
+
 @app.route('/clearspots')
 def clear_spots():
     """Allow user to clear the current list of RBN spots.
@@ -52,22 +63,37 @@ def clear_spots():
     skimmer.clear_spots()
     return "nothing"
 
+
 @app.route('/save/', methods=['POST'])
 def save():
-    """Allows a user to save a thingy"""
+    """Allows a user to save a SPOT line from the UI to the current session.
+    
+    POSTing with ?clear=1 will pop the current list of stored_spots from the 
+    session.
+    """
     data = request.get_json()
-    print(data)
+    #print(data)
     if not session.get('stored_spots'):
         session['stored_spots'] = []
 
     session['stored_spots'].append(data)
     session.modified = True
 
+    do_clear = request.args.get('clear', default=0, type=int)
+
+    if (do_clear == 1):
+        session.pop('stored_spots')
+
     return jsonify(success=True)
+
 
 @app.route('/load', methods=['GET'])
 def load():
-    """Allows a user to save a thingy"""
+    """Returns the session's stored_spots array as a JSON object.
+    
+    Use this on refresh to get the current stored spots.
+    Returns {Success}
+    """
     if not session.get('stored_spots'):
         return jsonify(success=False, message='no stored spots')
 
