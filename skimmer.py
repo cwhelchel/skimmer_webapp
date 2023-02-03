@@ -314,6 +314,8 @@ class Parser():
         if spot.they_need.startswith("STATUS:"):
             spot.sked_stat = spot.they_need
             spot.they_need = ""
+        elif spot.they_need.startswith("THEY"):
+            spot.they_need = spot.they_need[17:].strip()
 
         # if a sked dude is spotted then this gets inserted right after the 
         # callsign and skcc info 
@@ -322,7 +324,7 @@ class Parser():
             if t:
                 spot.freq = t.group(1)
             spot.you_need = spot.they_need[18:]
-            spot.they_need = spot.sked_stat if spot.sked_stat.startswith("THEY need") else spot.they_need
+            spot.they_need = spot.sked_stat[17:] if spot.sked_stat.startswith("THEY need") else ""
             spot.sked_stat = x[4].strip() if len(x) > 4 else spot.sked_stat
 
         return spot
