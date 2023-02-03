@@ -50,8 +50,9 @@
     color: maroon;
 }
 
-.utc {
-    color: blueviolet;
+.utc-timer {
+    color: lavender;
+    font-family: 'Consolas', monospace;
 }
 
 .highlight {
@@ -62,4 +63,6 @@
     background-color: aqua;
 }
 
+#footer a:link {text-decoration: none; font-weight: 500;}
+#footer i {color: #000;}
 

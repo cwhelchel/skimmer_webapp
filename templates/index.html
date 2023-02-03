@@ -25,35 +25,34 @@
                     console.log("cleared");
                 }
             }
-        function onScrachPadClearClick() {
-                $('#scratchpad').empty();
-            }
+
     </script>
+    
 </head>
 
-<body class="bg-white">
-    <nav class="navbar sticky-top navbar-light bg-light">
+<body class="bg-light">
+    <nav class="navbar sticky-top navbar-light bg-primary">
         <div class="container-fluid">
             <a class="navbar-brand" href="#">SKCC Skimmer - Webapp</a>
-            <div id="time" class="navbar-text utc">UTC:</div>
+            <div id="time" class="navbar-text utc-timer">UTC:</div>
     </nav>
     <main class="flex-shrink-0">
         <div class="container bg-light">
     
             <div class="container bg-light py-1">
                 <h2 class="text-center">Status Info
-                    <button class="btn btn-secondary m-3 me-auto" data-bs-toggle="collapse" href="#statusCollapse"
+                    <button class="btn btn-secondary m-3" data-bs-toggle="collapse" href="#statusCollapse"
                         aria-expanded="true" aria-controls="statusCollapse">
                         <i class="fa fa-eye" aria-hidden="true"></i>
                     </button>
                 </h2>
-                <div class="collapse show" id="statusCollapse">
-                    <div id="status" class="container-lg border py-3">Testing</div>
+                <div class="collapse" id="statusCollapse">
+                    <div id="status" class="container-lg border py-3" >Testing</div>
                 </div>
             </div>
 
             <div class="row">
-                <div class="col-md bg-light py-1">
+                <div class="col-md bg-light">
                     <h2 class="text-center">SKEDS
                         <button class="btn btn-secondary m-3" data-bs-toggle="collapse" href="#skedCollapse"
                             aria-expanded="true" aria-controls="skedCollapse">
@@ -61,18 +60,21 @@
                         </button>
                     </h2>
                     <div class="collapse show" id="skedCollapse">
-                        <div id="skeds" class="container-lg border py-3"></div>
+                        <div id="skeds" class="container-lg border py-3" style="min-height: 500px;"></div>
                     </div>
                 </div>
     
-                <div class="col-md bg-light pb-5">
+                <div class="col-md bg-light">
                     <h2 class="text-center">Cluster Spots
-                        <button class="btn btn-primary m-3" onclick="onClearClick()">
+                        <button class="btn btn-primary my-3" onclick="onClearClick()">
                             <i class="fa fa-trash" data-bs-toggle="tooltip" data-bs-placement="top" title="Clear Spots"></i>
                         </button>
-                        <button class="btn btn-secondary m-3" data-bs-toggle="collapse" href="#spotCollapse"
+                        <button class="btn btn-secondary my-3" data-bs-toggle="collapse" href="#spotCollapse"
                             aria-expanded="true" aria-controls="spotCollapse">
                             <i class="fa fa-eye" aria-hidden="true"></i>
+                        </button>
+                        <button class="btn btn-secondary my-3" onclick="onPlayClick()">
+                            <i class="fa fa-play" aria-hidden="true"></i>
                         </button>
                     </h2>
                     <div class="collapse show" id="spotCollapse">
@@ -81,10 +83,10 @@
                 </div>
             </div>
 
-            <div class="row">
+            <div class="row pt-3 pb-5">
                 <div class="col">
                     <h3 class="text-center">Scratch Pad
-                        <button class="btn btn-secondary m-3" onclick="onScrachPadClearClick()">clear</button>
+                        <button class="btn btn-secondary m-3" onclick="onScratchPadClearClick()">clear</button>
                     </h3>
                     <div id="scratchpad" class="scratchpad overflow-auto container-lg border py-3"></div>
                 </div>
@@ -93,174 +95,28 @@
         </div>
     </main>
 
-    <footer class="footer mt-auto py-5" style="background-color: rgba(0,0,0,0.2);">
-        <div class="container-fluid"></div>
-        <p class="text-center">©2023 Copyright: <a class="text-dark" href="http://krinkl3.net">krinkl3.net</a></p>
+    <footer class="footer mt-auto py-5" style="background-color: #e0e0e0;" aria-hidden="true">
+        <div id="footer" class="container pt-2 text-center text-dark">
+            <p class="text-center">
+                © 2023 Copyright: <a class="text-dark" href="http://krinkl3.net">krinkl3.net</a>
+            </p>
+            <div class="container pt-3" style="a{text-decoration:none;}">
+                <a href="https://github.com/cwhelchel/skimmer_webapp" target="_blank" class="m-1">
+                    <i class="fa fa-github fa-2x"></i>
+                </a>
+                &nbsp;
+                <a href="https://www.qrz.com/db/kq4dap" target="_blank" class="m-1">
+                    <i class="fa fa-globe fa-2x"></i>
+                </a>
+                &nbsp;
+                <a href="https://instagram.com/cainanwhelchel" target="_blank" class="m-1">
+                    <i class="fa fa-instagram fa-2x"></i>
+                </a>
+            </div>
         </div>
     </footer>
 
-    <script>
-        (function () {
-            
-            var status_set = false;
-            let at_bottom = false;
-            var skeds = {};
-
-            function getSpotHtml(spot) {
-                var out = '';
-                var spot_class = "spotline";
-                if (spot.flag) {
-                    spot_class += " newhighlight";
-                }
-
-                out += '<div class="' + spot_class + '">';
-                out += '<span class="zulu">' + spot.time + '</span>' +
-                    '<span class="callsign"> ' + spot.call + ' </span>' +
-                    '<span class="freq">' + spot.freq + '</span>' +
-                    '<span class="spotter"> ' + spot.spotter + ' </span>' +
-                    '<span class="skcc_info"> (' + spot.num + ' ' + spot.name + ' ' + spot.spc + ') </span>' +
-                    '';
-                out += '<span class="youneed fw-lighter"> ' + spot.you_need + '</span>';
-                out += '<span class="theyneed fw-lighter"> ' + spot.they_need + '</span>';
-                out += '<span class="sked_status"> ' + spot.sked_stat + '</span>';
-                out += "<br>";
-                out += '</div>';
-                return out;
-            }
-
-            /* 
-            *  Write out the HTML for a the spot array (arr) to the 
-            *  element at (id).
-            */
-            function writeSpotLine(arr, id) {
-                var out = '';
-                var i;
-                for (i = 0; i < arr.length; i++) {
-
-                    out += getSpotHtml(arr[i]);
-                }
-                document.getElementById(id).innerHTML = out;
-
-                if (id == "spots" && at_bottom) {
-                    var spotDiv = document.getElementById(id);
-                    var scrollHeight = Math.max(spotDiv.scrollHeight, spotDiv.clientHeight);
-                    spotDiv.scrollTop = scrollHeight - spotDiv.clientHeight;
-                }
-            }
-
-            function writeStatus(jsonData) {
-                var i = 0;
-                var out = '<pre>';
-
-                for (i = 1; i < jsonData.length; i++) {
-                    out += '<div class="statusline">';
-                    out += jsonData[i];
-                    out += '</div>';
-                }
-                out += '</pre>';
-
-                document.getElementById('status').innerHTML = out;
-            }
-
-            /* SPOTS WEBSOCKET */
-            const spotsWebsocket = new WebSocket('ws://' + location.host + '/getspotsws');
-            spotsWebsocket.addEventListener('message', ev => {
-                jsonData = JSON.parse(ev.data);
-                writeSpotLine(jsonData, "spots");
-            });
-
-            /* SKEDS WEBSOCKET */
-            const skedssWebsocket = new WebSocket('ws://' + location.host + '/getskedsws');
-            skedssWebsocket.addEventListener('message', ev => {
-                jsonData = JSON.parse(ev.data);
-                writeSpotLine(jsonData, "skeds");
-                skeds = jsonData;
-            });
-
-            function get_status() {
-                // create an ajax request
-                var q = new XMLHttpRequest();
-                q.open("get", '{{ url_for('get_status') }}', true);
-                q.send();
-
-                q.onload = function () {
-                    var v = JSON.parse(q.responseText);
-
-                    writeStatus(v);
-
-                    // v[0] is the current cSkimmer state value. either starting
-                    // or running
-                    if (v[0] != "running")
-                        setTimeout(get_status, 1000);
-                };
-            };
-
-            function updateClock() {
-                var utc_timestamp = Math.floor((new Date()).getTime() / 1000)
-                var t = new Date().toUTCString();
-                document.getElementById('time').innerHTML = t;
-
-                // call this function again in 1000ms
-                setTimeout(updateClock, 1000);
-            };
-
-            // call the function to get it started
-            updateClock();
-            get_status();
-
-            var q = new XMLHttpRequest();
-            q.open("get", '{{ url_for('load') }}', true);
-            q.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-            q.send();
-            q.onload = function () {
-                    var v = JSON.parse(q.responseText);
-                    v.forEach(el => $('#scratchpad').append(getSpotHtml(el)));
-                    /*$('#scratchpad').append(getSpotHtml(v[0]));*/
-            };
-
-
-            /* toggle the Highlight on a spotline on click */
-            $(document).on("click", 'div.spotline', function(event) { 
-                if ($(this).hasClass("highlight"))
-                    $(this).removeClass("highlight");
-                else {
-                    $(this).addClass("highlight");
-
-                    /* add to the scratch pad div */
-                    let savedLine = $(this).clone();
-                    $('#scratchpad').append(savedLine);
-                    
-                    let cs = $(this).find('.callsign');
-                    let toFind = cs[0].innerHTML.trim();
-
-                    var f = skeds.find(el => el.call === toFind);
-                    console.log(f);
-
-                    var q = new XMLHttpRequest();
-                    q.open("post", '{{ url_for('save') }}', true);
-                    q.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-                    q.send(JSON.stringify(f));
-                }
-            });
-
-            $('#spots').on('scroll', function() {
-                /*if ( $('spots').scrollTop() >= $('.div').offset().top + $('.div').outerHeight() - window.innerHeight) {*/
-                    var x =  this.scrollHeight - Math.round(this.scrollTop);
-                    if (x === this.clientHeight) {
-                        console.log('at bottom');
-                        at_bottom = true;
-                    } 
-                    else {
-                        /* user scrolled back up. this flag is now set so the
-                        spot list doesn't auto jump to bottom of div*/
-                        at_bottom = false;
-                    }
-                /*}*/
-
-            });
-
-        })();
-    </script>
+    <script src="{{ url_for('static', filename='main.js') }}"></script>
 
 </body>
 
