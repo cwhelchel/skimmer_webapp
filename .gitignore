@@ -1,5 +1,7 @@
 QSOs
 .vscode
 __pycache__
+build
+dist
 
 cVersion.py
