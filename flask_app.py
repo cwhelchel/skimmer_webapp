@@ -28,9 +28,9 @@ def start_skimmer():
     skimmer.run()
 
     #kick off parsing thread
-    t = threading.Thread(target=skimmer.read)
-    t.start()
-    print("read started")
+    #t = threading.Thread(target=skimmer.read)
+    #t.start()
+    #print("read started")
 
 
 @app.route("/")
@@ -40,6 +40,16 @@ def index():
     """
     skimmer.force_refresh()
     return render_template('index.html')
+
+
+@app.route("/restart/", methods=['POST'])
+def restart():
+    """Posting to this route will stop the skimmer then restart it
+    """
+    skimmer.stop()
+    skimmer.force_refresh()
+    skimmer.run()
+    return render_template('index.html')    
 
 
 @app.route('/getstatus')
@@ -129,3 +139,13 @@ def get_spots_ws(ws):
 
         x = jsonify(spots)
         ws.send(x.data.decode('utf-8'))
+
+
+# when we run out of a bundled exe this is what starts off the flask application
+if __name__ == '__main__':
+
+    # run the flask server
+    if (app.config['BIND_LOCALHOST_ONLY']): 
+        app.run()
+    else:
+        app.run(host="0.0.0.0")

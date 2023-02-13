@@ -202,7 +202,6 @@ function onScratchPadClearClick() {
     var q = new XMLHttpRequest();
     q.open("post", '/save/?clear=1', true);
     q.send();
-
 }
 
 
@@ -211,4 +210,27 @@ function onScratchPadClearClick() {
 */
 function onPlayClick() {
     scrollToBottom("spots");
+}
+
+
+/*
+ * Restart button click handler
+ */
+function onRestartClick() {
+    var q = new XMLHttpRequest();
+    q.open("post", '/restart/', true);
+    q.send();
+
+    /* when post is done */
+    q.onreadystatechange = () => {
+        if (q.readyState === XMLHttpRequest.DONE) {
+            const status = q.status;
+            if (status === 0 || (status >= 200 && status < 400)) {
+                /* kick off the status check ajax */
+                get_status();
+            }
+        }
+    };
+
+
 }

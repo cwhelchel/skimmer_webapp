@@ -1,46 +1,9 @@
 import subprocess
-import re
+import threading
+from skimmer_parser import SkimmerParser
 import os
 from datetime import datetime, timezone, timedelta
-from flask import Flask
-from dataclasses import dataclass
-
-class SpotType:
-    SKED = 1
-    SPOT = 2
-    UNKNOWN = 3
-
-@dataclass
-class Spot:
-    '''This is the data object for a spot line.
-    
-    Objects of this type will be sent to the front end for display.'''
-
-    time : str
-    call : str
-    kind : SpotType
-    flag : bool = False
-    freq : str = ""
-    spotter : str = ""
-    name : str = ""
-    spc : str = ""
-    num : str = ""
-    you_need: str = ""
-    they_need: str = ""
-    sked_stat: str = ""
-    utc_time : datetime = datetime.min
-
-    def __post_init__(self):
-        self.time = self.time[:2] + ':' + self.time[2:].lower()
-        hour = self.time[:2]
-        minute = self.time[3:5]
-        self.utc_time = datetime.utcnow()
-        self.utc_time = datetime(self.utc_time.year, \
-            self.utc_time.month, \
-            self.utc_time.day, \
-            int(hour), \
-            int(minute), \
-            0, 0, tzinfo=timezone.utc)
+from skimmer_spot import Spot, SpotType
 
 
 class SkccStatus:
@@ -93,8 +56,32 @@ class cSkimmer:
         if not self.__is_running:
             os.environ['PYTHONIOENCODING'] = 'utf-8'
 
-            self.proc = subprocess.Popen(self.__cmd, encoding='utf-8', stdout=subprocess.PIPE)
+            self.__proc = subprocess.Popen(self.__cmd, 
+                encoding='utf-8', 
+                stdout=subprocess.PIPE, 
+                stderr=subprocess.STDOUT)
+
             self.__is_running = True
+
+            # kick off parsing thread
+            self.__thread = threading.Thread(target=self.read)
+            self.__thread.start()
+            print("read thread started")
+
+
+    def stop(self):
+        """Stops the running skcc skimmer process
+        
+        """
+        if (self.__proc != None and self.__is_running):
+            print('killing process...')
+            self.__proc.terminate()
+
+            print('joining read thread...')
+            self.__thread.join()
+
+            self.__is_running = False
+            self.__status.state = 'stopped'
 
 
     def read(self):
@@ -103,11 +90,13 @@ class cSkimmer:
         This never returns.
         """
 
-        if (self.proc == None):
+        if (self.__proc == None):
             return ""
 
+        self.__status.state = 'starting'
+
         str = ""
-        for line in iter(self.proc.stdout.readline, ''):
+        for line in iter(self.__proc.stdout.readline, ''):
             str = line.strip()
             self.__parse(str)
 
@@ -195,7 +184,7 @@ class cSkimmer:
 
 
     def __parse_line(self, line : str):
-        spot = Parser.parse_spot(line)
+        spot = SkimmerParser.parse_spot(line)
 
         if (spot == None): 
             return
@@ -228,103 +217,3 @@ class cSkimmer:
             if delta >= timedelta(seconds=timeout):
                 print("removing old spot")
                 self.__spots.remove(spot)
-
-
-
-class Parser():
-    '''This class handles the parsing of spot lines from the skimmer application'''
-
-    # group 1 = zulu time, 2 = sked/spot flag, 3 = callsign
-    spot_hdr = re.compile("([0-9]{4}Z)(\+| )([A-Z0-9\/]*)")
-
-    # group 1 = frequency, 2 = spotter info
-    freq = re.compile("on\s+([\d\.\d+]+)\sby\s([\w\-\/\\]+\([\d\w,\s]+\))")
-
-    # group 1 = skcc num, 2 = fname, 3 = SPC
-    skcc = re.compile("\(\s*(\d+\s(?:\w|\s)+)\s+([\w\-\']+)\s+([0-9A-Za-z]+)\)")
-
-    @staticmethod
-    def parse_spot(line : str) -> Spot:
-        '''Parses a line from the skimmer and returns a Spot object.
-
-        May return None if the spot header is invalid. '''
-        spot = Parser._parse_spot_header(line)
-        
-        if (spot):
-            spot = Parser._parse_spot_body(line, spot)
-
-        return spot
-
-
-    @staticmethod
-    def _parse_spot_header(line : str) -> Spot:
-
-        # sometimes the line has a bell char \x07 at the front (from the main skimmer)
-        # we need to remove it (and other control chars) (this isn't all of them)
-        line = re.sub(r'[\x00-\x1f]', '', line)
-
-        match = Parser.spot_hdr.match(line)
-
-        if match:
-            x = match.group(1, 2, 3)
-
-            # NOTE: for skeds, the flag indicator is for status updates to the 
-            # sked page. for spots its to indicate that that call-sign is needed
-            # for a goal.
-
-            flag = True if x[1] == '+' else False
-
-            spot = Spot(time = x[0], \
-                        call = x[2], \
-                        kind = SpotType.UNKNOWN,\
-                        flag = flag)
-            return spot
-        
-        #else: 
-            #print("error spot header didn't match!")
-        
-        return None
-
-
-    @staticmethod 
-    def _parse_spot_body(line : str, spot : Spot) -> Spot:
-        x = line.split(';')
-
-        if len(x) <= 0:
-            return spot
-        
-        # parse first split str (freq, name, num, etc.)
-        if y := Parser.freq.search(x[0]):
-            (freq, spotter) = y.group(1,2)
-            spot.freq = freq.strip()
-            spot.spotter = spotter.strip()
-
-        if z := Parser.skcc.search(x[0]):
-            (num, name, spc) = z.group(1,2,3)
-            spot.num = num.strip()
-            spot.name = name.strip()
-            spot.spc = spc.strip()
-
-        # pull out the "needs" and sked status if its there (it may be in idx 2)
-        temp = x[1].strip() if len(x) > 1 else ""
-        spot.you_need  = x[1][18:] if len(x) > 1 else ""
-        spot.they_need = x[2].strip() if len(x) > 2 else ""
-        spot.sked_stat = x[3].strip() if len(x) > 3 else ""
-
-        if spot.they_need.startswith("STATUS:"):
-            spot.sked_stat = spot.they_need
-            spot.they_need = ""
-        elif spot.they_need.startswith("THEY"):
-            spot.they_need = spot.they_need[17:].strip()
-
-        # if a sked dude is spotted then this gets inserted right after the 
-        # callsign and skcc info 
-        if temp.startswith("Last spotted"):
-            t = re.search("([\d\.\d+]+)", spot.you_need)
-            if t:
-                spot.freq = t.group(1)
-            spot.you_need = spot.they_need[18:]
-            spot.they_need = spot.sked_stat[17:] if spot.sked_stat.startswith("THEY need") else ""
-            spot.sked_stat = x[4].strip() if len(x) > 4 else spot.sked_stat
-
-        return spot
