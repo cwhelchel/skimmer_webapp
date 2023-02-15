@@ -170,6 +170,16 @@ class cFastDateTime:
 	def ToDateTime(self) -> datetime:
 		return datetime.strptime(self.FastDateTime, '%Y%m%d%H%M%S')
 
+	def FirstWeekdayFromDate(self, TargetWeekday: str) -> cFastDateTime:
+		TargetWeekdayNumber = time.strptime(TargetWeekday, '%a').tm_wday
+		DateTime = self.ToDateTime()
+
+		while DateTime.weekday() != TargetWeekdayNumber:
+			DateTime += timedelta(days=1)
+
+		return cFastDateTime(DateTime)
+
+
 	def FirstWeekdayAfterDate(self, TargetWeekday: str) -> cFastDateTime:
 		TargetWeekdayNumber = time.strptime(TargetWeekday, '%a').tm_wday
 		DateTime = self.ToDateTime()
@@ -1760,10 +1770,13 @@ class cSKCC:
 
 	@staticmethod
 	def WES(Year: int, Month: int) -> tuple[cFastDateTime, cFastDateTime]:
-		FromDate      = cFastDateTime((Year, Month, 6))
-		StartDate     = FromDate.FirstWeekdayAfterDate('Sat')
-		StartDateTime = StartDate + timedelta(hours=12)
-		EndDateTime   = StartDateTime + timedelta(hours=35, minutes=59, seconds=59)
+		FromDate       = cFastDateTime((Year, Month, 1))
+
+		FirstSaturday  = FromDate.FirstWeekdayFromDate('Sat')       # first Saturday
+		SecondSaturday = FirstSaturday.FirstWeekdayAfterDate('Sat') # second Saturday
+
+		StartDateTime  = SecondSaturday + timedelta(hours=12)
+		EndDateTime    = StartDateTime + timedelta(hours=35, minutes=59, seconds=59)
 
 		return StartDateTime, EndDateTime
 
@@ -1773,7 +1786,7 @@ class cSKCC:
 
 		StartDate = cFastDateTime(None)
 
-		for _ in range(1, 4+1):
+		for _ in range(1, 4 +1):
 			StartDate = FromDate.FirstWeekdayAfterDate('Wed')
 			FromDate = StartDate
 
@@ -1783,11 +1796,28 @@ class cSKCC:
 		return StartDateTime, EndDateTime
 
 	@staticmethod
+	def SKSA(Year: int, Month: int) -> tuple[cFastDateTime, cFastDateTime]:
+		FromDate      = cFastDateTime((Year, Month, 1))
+
+		FirstFriday   = FromDate.FirstWeekdayFromDate('Fri')     # first Friday
+		SecondFriday  = FirstFriday.FirstWeekdayAfterDate('Fri') # second Friday
+
+		StartDateTime = SecondFriday + timedelta(hours=22)
+		EndDateTime   = StartDateTime + timedelta(hours=1, minutes=59, seconds=59)
+
+		return StartDateTime, EndDateTime
+
+	@staticmethod
 	def SKSE(Year: int, Month: int) -> tuple[cFastDateTime, cFastDateTime]:
 		FromDate      = cFastDateTime((Year, Month, 1))
-		StartDate     = FromDate.FirstWeekdayAfterDate('Thu')
-		StartDateTime = StartDate + timedelta(hours=20)
-		EndDateTime   = StartDateTime + timedelta(hours=2)
+		FirstThursday = FromDate.FirstWeekdayFromDate('Thu')
+
+		if Month in [1, 2, 3, 11, 12]:
+			StartDateTime = FirstThursday + timedelta(hours=20)
+		else:
+			StartDateTime = FirstThursday + timedelta(hours=19)
+
+		EndDateTime = StartDateTime + timedelta(hours=1, minutes=59, seconds=59)
 
 		return StartDateTime, EndDateTime
 
@@ -1809,6 +1839,11 @@ class cSKCC:
 		fastSkseDateTimeStart, fastSkseDateTimeEnd = cSKCC.SKSE(Year, Month)
 
 		if fastSkseDateTimeStart <= fastDateTime <= fastSkseDateTimeEnd:
+			return True
+
+		fastSksaDateTimeStart, fastSksaDateTimeEnd = cSKCC.SKSA(Year, Month)
+
+		if fastSksaDateTimeStart <= fastDateTime <= fastSksaDateTimeEnd:
 			return True
 
 		return False
