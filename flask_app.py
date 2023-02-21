@@ -1,4 +1,3 @@
-import threading
 from datetime import timedelta
 from time import sleep
 from flask import Flask, render_template
@@ -6,13 +5,15 @@ from flask import jsonify, request, session
 from flask_sock import Sock
 from skimmer import cSkimmer
 
+WEB_APP_VER = "0.1.0"
+
 app = Flask(__name__)
 
 # setup config for sessions
 app.config['SESSION_PERMANENT'] = True
 app.config['SESSION_TYPE'] = 'filesystem'
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=48)
-app.secret_key = 'BAD_SANTA'
+app.secret_key = 'WE_SHOULD_PROBABLY_CHANGE_THIS'
 
 sock = Sock(app)
 app.config.from_pyfile('skimmerwebapp.cfg')
@@ -24,13 +25,8 @@ def start_skimmer():
     # make session permanent
     session.permanent = True
 
-    #kick off main skcc skimmer script
+    # kick off main skcc skimmer script
     skimmer.run()
-
-    #kick off parsing thread
-    #t = threading.Thread(target=skimmer.read)
-    #t.start()
-    #print("read started")
 
 
 @app.route("/")
@@ -110,6 +106,14 @@ def load():
     print('load' + str(session['stored_spots']))
     return jsonify(session['stored_spots'])
 
+
+@app.route('/version', methods=['GET'])
+def version():
+    """Returns the applications version information. 
+
+    """
+
+    return jsonify(success=True, version=WEB_APP_VER)
 
 @sock.route('/getskedsws')
 def get_skeds_ws(ws):

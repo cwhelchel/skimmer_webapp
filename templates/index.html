@@ -38,19 +38,21 @@
     </nav>
     <main class="flex-shrink-0">
         <div class="container bg-light">
-    
-            <div class="container bg-light py-1">
+            <div class="container bg-light py-3">
                 <h2 class="text-center">Status Info
-                    <button class="btn btn-secondary m-3" data-bs-toggle="collapse" href="#statusCollapse"
-                        aria-expanded="true" aria-controls="statusCollapse">
-                        <i class="fa fa-eye" aria-hidden="true"></i>
-                    </button>
-                    <button class="btn btn-secondary">
-                        <i class="fa fa-refresh" aria-hidden="true" title="Restart"  onclick="onRestartClick()"></i>
-                    </button>
+                    <div class="ms-3" style="display:inline;">
+                        <button class="btn btn-secondary" data-bs-toggle="collapse" href="#statusCollapse"
+                            aria-expanded="true" aria-controls="statusCollapse">
+                            <i class="fa fa-eye" aria-hidden="true"></i>
+                        </button>
+                        <button class="btn btn-secondary">
+                            <i class="fa fa-refresh" aria-hidden="true" title="Restart Skimmer" onclick="onRestartClick()"></i>
+                        </button>
+                    </div>
                 </h2>
+                <span id="loadSpinner">starting skimmer... <i class="fa fa-spinner fa-pulse fa-fw"></i></span>
                 <div class="collapse" id="statusCollapse">
-                    <div id="status" class="container-lg border py-3" >Testing</div>
+                    <div id="status" class="container-lg border py-3">Testing</div>
                 </div>
             </div>
 
@@ -69,7 +71,7 @@
     
                 <div class="col-md bg-light">
                     <h2 class="text-center">RBN Spots
-                        <button class="btn btn-primary my-3" onclick="onClearClick()">
+                        <button class="btn btn-primary my-3 ms-3" onclick="onClearClick()">
                             <i class="fa fa-trash" data-bs-toggle="tooltip" data-bs-placement="top" title="Clear Spots"></i>
                         </button>
                         <button class="btn btn-secondary my-3" data-bs-toggle="collapse" href="#spotCollapse"
@@ -102,6 +104,8 @@
         <div id="footer" class="container pt-2 text-center text-dark">
             <p class="text-center">
                 © 2023 Copyright: <a class="text-dark" href="http://krinkl3.net">krinkl3.net</a>
+                <br>
+                <span id="verNum"></span>
             </p>
             <div class="container pt-3" style="a{text-decoration:none;}">
                 <a href="https://github.com/cwhelchel/skimmer_webapp" target="_blank" class="m-1">
