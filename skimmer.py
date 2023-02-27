@@ -37,7 +37,7 @@ class cSkimmer:
     """
 
     def __init__(self, cfg : dict):
-        self.__cmd = ["python", "skcc_skimmer.py"]
+        self.__cmd = ["skcc_skimmer.exe"]
         self.__status = SkccStatus()
         self.__spots = []
         self.__sked_spots = []
@@ -56,10 +56,14 @@ class cSkimmer:
         if not self.__is_running:
             os.environ['PYTHONIOENCODING'] = 'utf-8'
 
+            print('running cmd: ' + ' '.join(self.__cmd))
+            print('in curr dir: ' + os.getcwd())
+
             self.__proc = subprocess.Popen(self.__cmd, 
                 encoding='utf-8', 
                 stdout=subprocess.PIPE, 
-                stderr=subprocess.STDOUT)
+                stderr=subprocess.PIPE,
+                stdin=subprocess.PIPE)
 
             self.__is_running = True
 

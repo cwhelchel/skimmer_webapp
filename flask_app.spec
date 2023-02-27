@@ -7,11 +7,9 @@ block_cipher = None
 a = Analysis(
     ['flask_app.py'],
     pathex=[],
-    binaries=[],
+    binaries=[('skcc_skimmer.exe','.')],
     datas=[('templates', 'templates'), 
         ('static', 'static'), 
-        ('Lib', 'Lib'), 
-        ('skcc_skimmer.*', '.'),
         ('skimmerwebapp.cfg', '.')],
     hiddenimports=['jinja2.ext'],
     hookspath=[],
