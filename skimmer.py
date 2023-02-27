@@ -40,7 +40,7 @@ class cSkimmer:
         if sys.platform == "win32":
             self.__cmd = ["skcc_skimmer.exe"]
         else:
-            self.__cmd = ["python3", "skccskimmer\skcc_skimmer.py"]
+            self.__cmd = ["python3", "skccskimmer/skcc_skimmer.py"]
         self.__status = SkccStatus()
         self.__spots = []
         self.__sked_spots = []
