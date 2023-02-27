@@ -1,7 +1,7 @@
+import os, sys
 import subprocess
 import threading
 from skimmer_parser import SkimmerParser
-import os
 from datetime import datetime, timezone, timedelta
 from skimmer_spot import Spot, SpotType
 
@@ -37,7 +37,10 @@ class cSkimmer:
     """
 
     def __init__(self, cfg : dict):
-        self.__cmd = ["skcc_skimmer.exe"]
+        if sys.platform == "win32":
+            self.__cmd = ["skcc_skimmer.exe"]
+        else:
+            self.__cmd = ["python3", "skccskimmer/skcc_skimmer.py"]
         self.__status = SkccStatus()
         self.__spots = []
         self.__sked_spots = []
