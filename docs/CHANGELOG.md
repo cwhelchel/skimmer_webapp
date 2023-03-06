@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+## [0.1.1] - 2023-03-06
+
+### Fixed
+
+- Windows release package should work without having to install Python
+- Linux release should work but does require Python
 
 
 ## [0.1.0] - 2023-02-21
